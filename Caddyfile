@@ -56,7 +56,7 @@ BOTDOMAIN.COM {
     # }
 
     # Webhook бота
-    handle_path /bot/* {
+    handle /bot/* {
         # Проверка secret token в заголовке (если настроен в боте)
         # @valid_token header X-Telegram-Bot-Api-Secret-Token {$WEBHOOK_SECRET_TOKEN}
         
