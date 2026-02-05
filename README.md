@@ -82,15 +82,18 @@
 ### Ubuntu / Debian
 
 ```bash
-# 1. Установите Docker
+# 1. Обновите систему и установите git
 sudo apt update
+sudo apt install -y git
+
+# 2. Установите Docker
 sudo curl -fsSL https://get.docker.com | sh
 
-# 2. Клонируйте репозиторий
+# 3. Клонируйте репозиторий
 git clone https://github.com/SkunkBG/aunt-polly-bot.git
 cd aunt-polly-bot
 
-# 3. Создайте конфигурацию
+# 4. Создайте конфигурацию
 cp env.example .env
 nano .env
 ```
@@ -103,13 +106,13 @@ BOT_MODE=polling
 ```
 
 ```bash
-# 4. Запустите
+# 5. Запустите
 sudo docker compose up -d
 
-# 5. Проверьте логи
+# 6. Проверьте логи
 sudo docker compose logs -f
 
-# 6. Готово! Отправьте /admin боту
+# 7. Готово! Отправьте /admin боту
 ```
 
 **Управление:**
@@ -203,14 +206,18 @@ sudo systemctl status aunt-polly-bot
 ### Установка
 
 ```bash
-# 1. Установите Docker (если не установлен)
+# 1. Обновите систему и установите git
+sudo apt update
+sudo apt install -y git
+
+# 2. Установите Docker (если не установлен)
 sudo curl -fsSL https://get.docker.com | sh
 
-# 2. Клонируйте репозиторий
+# 3. Клонируйте репозиторий
 git clone https://github.com/SkunkBG/aunt-polly-bot.git
 cd aunt-polly-bot
 
-# 3. Настройте .env для webhook
+# 4. Настройте .env для webhook
 cp env.example .env
 nano .env
 ```
@@ -233,7 +240,7 @@ WEBHOOK_SECRET_TOKEN=your_secret_token_here
 ```
 
 ```bash
-# 4. Настройте Caddyfile
+# 5. Настройте Caddyfile
 nano Caddyfile
 ```
 
@@ -254,14 +261,14 @@ bot.yourdomain.com {
 ```
 
 ```bash
-# 5. Запустите с профилем caddy
+# 6. Запустите с профилем caddy
 sudo docker compose --profile caddy up -d
 
-# 6. Проверьте логи
+# 7. Проверьте логи
 sudo docker compose logs caddy
 sudo docker compose logs aunt-polly-bot
 
-# 7. Проверьте webhook
+# 8. Проверьте webhook
 curl https://bot.yourdomain.com/bot/health
 ```
 
@@ -279,14 +286,18 @@ curl https://bot.yourdomain.com/bot/health
 ### Установка
 
 ```bash
-# 1. Установите Docker (если не установлен)
+# 1. Обновите систему и установите git
+sudo apt update
+sudo apt install -y git
+
+# 2. Установите Docker (если не установлен)
 sudo curl -fsSL https://get.docker.com | sh
 
-# 2. Клонируйте репозиторий
+# 3. Клонируйте репозиторий
 git clone https://github.com/SkunkBG/aunt-polly-bot.git
 cd aunt-polly-bot
 
-# 3. Настройте .env для webhook
+# 4. Настройте .env для webhook
 cp env.example .env
 nano .env
 ```
@@ -309,7 +320,7 @@ WEBHOOK_SECRET_TOKEN=your_secret_token_here
 ```
 
 ```bash
-# 4. Настройте nginx.conf
+# 5. Настройте nginx.conf
 nano nginx/nginx.conf
 ```
 
@@ -354,11 +365,11 @@ server {
 ```
 
 ```bash
-# 5. Запустите временно nginx для получения сертификата
+# 6. Запустите временно nginx для получения сертификата
 sudo docker compose up -d aunt-polly-bot
 sudo docker compose up -d nginx
 
-# 6. Получите SSL-сертификат
+# 7. Получите SSL-сертификат
 sudo docker compose run --rm certbot certonly --webroot \
   -w /var/www/certbot \
   -d bot.yourdomain.com \
@@ -366,10 +377,10 @@ sudo docker compose run --rm certbot certonly --webroot \
   --agree-tos \
   --no-eff-email
 
-# 7. Перезапустите nginx
+# 8. Перезапустите nginx
 sudo docker compose restart nginx
 
-# 8. Проверьте webhook
+# 9. Проверьте webhook
 curl https://bot.yourdomain.com/bot/health
 ```
 
@@ -542,9 +553,60 @@ sudo docker compose --profile nginx up -d --build
 
 ---
 
+## 🖥️ Подготовка сервера
+
+### Базовая настройка Ubuntu/Debian
+
+```bash
+# Обновление системы
+sudo apt update && sudo apt upgrade -y
+
+# Настройка firewall
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+
+# Настройка времени
+sudo timedatectl set-timezone Europe/Moscow  # или ваш часовой пояс
+```
+
+---
+
+## 🔄 Обновление
+
+```bash
+cd aunt-polly-bot
+git pull
+
+# Для polling
+sudo docker compose down
+sudo docker compose up -d --build
+
+# Для Caddy
+sudo docker compose --profile caddy down
+sudo docker compose --profile caddy up -d --build
+
+# Для Nginx
+sudo docker compose --profile nginx down
+sudo docker compose --profile nginx up -d --build
+```
+
+---
+
 ## 📝 Лицензия
 
 MIT License — см. [LICENSE](LICENSE)
+
+---
+
+## 🙏 Благодарности
+
+- [aiogram](https://aiogram.dev) — асинхронный Telegram Bot Framework
+- [Groq](https://groq.com) — быстрый AI inference
+- [Google Gemini](https://ai.google.dev) — мощный AI API
+- [Caddy](https://caddyserver.com) — автоматический HTTPS
+- [Docker](https://docker.com) — контейнеризация
 
 ---
 
@@ -552,6 +614,7 @@ MIT License — см. [LICENSE](LICENSE)
 
 - 🐛 **Баги**: [GitHub Issues](https://github.com/SkunkBG/aunt-polly-bot/issues)
 - 💬 **Вопросы**: [GitHub Discussions](https://github.com/SkunkBG/aunt-polly-bot/discussions)
+- ☕ **Поддержать проект**: [ВАША_ССЫЛКА_НА_ДОНАТ]
 
 ---
 
