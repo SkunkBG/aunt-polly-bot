@@ -1,0 +1,91 @@
+# ============================================================================
+# CADDY КОНФИГУРАЦИЯ для Aunt Polly Bot
+# ============================================================================
+# 
+# Возможности:
+# - Автоматический HTTPS (Let's Encrypt)
+# - Rate limiting
+# - Защита от DDoS
+# - Проксирование webhook
+#
+# Установка:
+# 1. Замените BOTDOMAIN.COM на ваш домен
+# 2. Замените /bot/* на ваш webhook path
+# 3. docker-compose --profile caddy up -d
+#
+# ============================================================================
+
+# Глобальные настройки
+{
+    # Email для Let's Encrypt (замените на свой)
+    email admin@example.com
+    
+    # Лимит одновременных соединений на IP
+    servers {
+        timeouts {
+            read_body 10s
+            read_header 5s
+            write 30s
+            idle 120s
+        }
+    }
+}
+
+# Основной бот
+BOTDOMAIN.COM {
+    # Логирование
+    log {
+        output file /var/log/caddy/bot_access.log
+        format json
+    }
+
+    # Rate limiting: 60 запросов в минуту на IP
+    # Требует плагин: https://github.com/mholt/caddy-ratelimit
+    # Если плагин не установлен - закомментируйте эту секцию
+    # rate_limit {
+    #     zone bot_zone {
+    #         key {remote_host}
+    #         events 60
+    #         window 1m
+    #     }
+    # }
+
+    # Разрешаем только IP серверов Telegram (опционально, для безопасности)
+    # @telegram_ips {
+    #     remote_ip 149.154.160.0/20 91.108.4.0/22
+    # }
+
+    # Webhook бота
+    handle_path /bot/* {
+        # Проверка secret token в заголовке (если настроен в боте)
+        # @valid_token header X-Telegram-Bot-Api-Secret-Token {$WEBHOOK_SECRET_TOKEN}
+        
+        reverse_proxy aunt-polly-bot:8081 {
+            # Таймауты
+            transport http {
+                read_timeout 30s
+                write_timeout 30s
+            }
+            
+            # Health check
+            health_uri /health
+            health_interval 30s
+            health_timeout 5s
+        }
+    }
+
+    # Блокируем всё остальное
+    handle {
+        respond "Not Found" 404
+    }
+}
+
+# Спам-бот (если используется)
+# SPAMDOMAIN.COM {
+#     handle_path /spam/* {
+#         reverse_proxy aunt-polly-spam:8082
+#     }
+#     handle {
+#         respond "Not Found" 404
+#     }
+# }

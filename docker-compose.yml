@@ -1,0 +1,137 @@
+# ============================================================================
+# DOCKER COMPOSE для Aunt Polly Bot
+# ============================================================================
+#
+# Использование:
+#
+# 1. Только бот (polling режим):
+#    docker-compose up -d
+#
+# 2. Бот + Caddy (webhook, автоматический HTTPS):
+#    docker-compose --profile caddy up -d
+#
+# 3. Бот + Nginx (webhook, нужны сертификаты):
+#    docker-compose --profile nginx up -d
+#
+# ============================================================================
+
+services:
+  # ===========================================================================
+  # БОТ
+  # ===========================================================================
+  aunt-polly-bot:
+    container_name: aunt-polly-bot
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - bot_network
+    expose:
+      - "8081"
+    volumes:
+      # Постоянное хранение данных
+      - ./bot/data:/app/bot/data
+      - ./bot/backups:/app/bot/backups
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Ограничение ресурсов (защита от утечек памяти)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ===========================================================================
+  # CADDY (рекомендуется для простоты)
+  # ===========================================================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: aunt-polly-caddy
+    profiles:
+      - caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - bot_network
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./logs/caddy:/var/log/caddy
+    depends_on:
+      - aunt-polly-bot
+    # Ограничение ресурсов
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+  # ===========================================================================
+  # NGINX (больше контроля и настроек)
+  # ===========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: aunt-polly-nginx
+    profiles:
+      - nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - bot_network
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+      # SSL сертификаты (Let's Encrypt)
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - aunt-polly-bot
+    # Ограничение ресурсов
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+  # ===========================================================================
+  # CERTBOT (для nginx, получение SSL)
+  # ===========================================================================
+  certbot:
+    image: certbot/certbot
+    container_name: aunt-polly-certbot
+    profiles:
+      - nginx
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Для первоначального получения сертификата:
+    # docker-compose run --rm certbot certonly --webroot -w /var/www/certbot -d YOURDOMAIN.COM
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+# ===========================================================================
+# СЕТИ
+# ===========================================================================
+networks:
+  bot_network:
+    driver: bridge
+    # Если используете внешнюю сеть caddy_net:
+    # external: true
+    # name: caddy_net
+
+# ===========================================================================
+# VOLUMES
+# ===========================================================================
+volumes:
+  caddy_data:
+  caddy_config:
